@@ -20,7 +20,7 @@ app.post('/tableau-signin', async (req, res) => {
     try {
         const tableauResponse = await axios.post('https://us-west-2b.online.tableau.com/api/3.22/auth/signin', 
             `<tsRequest>
-                <credentials name=${process.env.USERNAME} password=${process.env.PASSWORD}>
+                <credentials name="${process.env.USERNAME}" password="${process.env.PASSWORD}">
                     <site contentUrl="eacloud"/>
                 </credentials>
             </tsRequest>`, 
