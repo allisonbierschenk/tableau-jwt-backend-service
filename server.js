@@ -43,8 +43,10 @@ app.post('/tableau-signin', async (req, res) => {
             exp: Math.floor(Date.now() / 1000) + (5 * 60), // Token valid for 5 minutes
             jti: uuidv4(),
             aud: "tableau",
-            sub: username,
-            scp: ["tableau:views:embed", "tableau:metrics:embed"]
+            sub: "allison",
+            scp: ["tableau:views:embed", "tableau:metrics:embed"],
+            "https://tableau.com/oda":"true",
+            "https://tableau.com/groups": ["Community Group"],
         };
 
         // JWT signing options
