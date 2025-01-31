@@ -34,8 +34,10 @@ func generateJWT() (string, error) {
 		"exp": time.Now().Add(5 * time.Minute).Unix(),
 		"jti": uuid.New().String(),
 		"aud": "tableau",
-		"sub": "abierschenk@salesforce.com",
+		"sub": "odatest",
 		"scp": []string{"tableau:views:embed", "tableau:metrics:embed"},
+		"https://tableau.com/oda": "true",
+		"https://tableau.com/groups": []string{"odatest"},
 	}
 
 	// Create JWT token with signing method
