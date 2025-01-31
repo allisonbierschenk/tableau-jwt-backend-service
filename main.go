@@ -35,6 +35,8 @@ func generateJWT() (string, error) {
 		"aud": "tableau",
 		"sub": "abierschenk@salesforce.com",
 		"scp": []string{"tableau:views:embed", "tableau:metrics:embed"},
+		"https://tableau.com/oda": true,
+		"https://tableau.com/groups": "odatest",
 	}
 
 	// Create JWT token with signing method

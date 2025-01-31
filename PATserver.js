@@ -19,13 +19,17 @@ app.use(bodyParser.json());
 
 // Endpoint to handle Tableau sign-in and JWT token generation
 app.post('/tableau-signin', async (req, res) => {
-    const { username, password } = req.body;
+    console.log('Received request body:', req.body); // Log the entire body
+
+    const { personalAccessTokenName, personalAccessTokenSecret } = req.body.credentials; 
+    console.log('Received login request:', { personalAccessTokenName, personalAccessTokenSecret }); // Log the received credentials
+
 
     try {
         // Request Tableau authentication
         const tableauResponse = await axios.post('https://us-west-2b.online.tableau.com/api/3.22/auth/signin', 
             `<tsRequest>
-                <credentials personalAccessTokenName="${username}" personalAccessTokenSecret="${password}">
+                <credentials personalAccessTokenName="${personalAccessTokenName}" personalAccessTokenSecret="${personalAccessTokenSecret}">
                     <site contentUrl="embedseubl"/>
                 </credentials>
             </tsRequest>`, 
@@ -35,8 +39,16 @@ app.post('/tableau-signin', async (req, res) => {
                 }
             });
 
+        console.log('Tableau authentication response:', tableauResponse.data); // Log Tableau response
+
+        if (!tableauResponse.data.credentials) {
+            console.error('No credentials found in Tableau response');
+            return res.status(500).json({ message: 'Tableau authentication failed' });
+        }
+
         const tableauToken = tableauResponse.data.credentials.token;
-console.log(username)
+        console.log('Tableau Token:', tableauToken); // Log the received Tableau token
+
         // Create JWT payload
         const tokenPayload = {
             iss: process.env.CONNECTED_APP_CLIENT_ID,
@@ -44,8 +56,12 @@ console.log(username)
             jti: uuidv4(),
             aud: "tableau",
             sub: "abierschenk@salesforce.com",
-            scp: ["tableau:views:embed", "tableau:metrics:embed"]
+            scp: ["tableau:views:embed", "tableau:metrics:embed"],
+            "https://tableau.com/oda": "true",
+            "https://tableau.com/groups": ["odatest"],
         };
+
+        console.log('JWT Payload:', tokenPayload); // Log the payload for the JWT
 
         // JWT signing options
         const jwtOptions = {
@@ -58,8 +74,10 @@ console.log(username)
 
         // Generate JWT token
         const jwtToken = jwt.sign(tokenPayload, process.env.CONNECTED_APP_SECRET_KEY, jwtOptions);
+        console.log('Generated JWT Token:', jwtToken); // Log the generated JWT token
 
         res.json({ jwtToken });
+
     } catch (error) {
         console.error('Authentication error:', error.message);
         res.status(500).json({ message: 'Failed to authenticate with Tableau', error: error.message });
