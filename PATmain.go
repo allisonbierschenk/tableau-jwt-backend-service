@@ -37,7 +37,7 @@ func generateJWT() (string, error) {
 		"sub": "odatest",
 		"scp": []string{"tableau:views:embed", "tableau:metrics:embed"},
 		"https://tableau.com/oda": "true",
-		"https://tableau.com/groups": ["odatest"],
+		"https://tableau.com/groups": []string{"odatest"},
 	}
 
 	// Create JWT token with signing method
