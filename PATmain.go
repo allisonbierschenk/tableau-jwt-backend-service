@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/joho/godotenv"
-	"github.com/google/uuid"
-	"github.com/rs/cors"
+	"github.com/dgrijalva/jwt-go" 
+	"github.com/joho/godotenv"     
+	"github.com/google/uuid"        
+	"github.com/rs/cors"         
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,45 +15,46 @@ import (
 	"time"
 )
 
-// JSON structure for Tableau authentication request
+// Struct to hold Tableau authentication request data, what I am using for authenticating into the application. This is not required but a user store somewhere is required.
 type TsRequest struct {
 	Credentials struct {
 		PersonalAccessTokenName    string `json:"personalAccessTokenName"`
 		PersonalAccessTokenSecret  string `json:"personalAccessTokenSecret"`
-		Site                       struct {
+		Site struct {
 			ContentUrl string `json:"contentUrl"`
 		} `json:"site"`
 	} `json:"credentials"`
 }
 
-// Generate JWT token
+// Function to generate a JWT token
 func generateJWT() (string, error) {
-	// Define JWT claims
+	// Define JWT claims (payload)
 	claims := jwt.MapClaims{
-		"iss": os.Getenv("CONNECTED_APP_CLIENT_ID"),
-		"exp": time.Now().Add(5 * time.Minute).Unix(),
-		"jti": uuid.New().String(),
-		"aud": "tableau",
-		"sub": "odatest",
-		"scp": []string{"tableau:views:embed", "tableau:metrics:embed"},
-		"https://tableau.com/oda": "true",
-		"https://tableau.com/groups": []string{"odatest"},
+		"iss": os.Getenv("CONNECTED_APP_CLIENT_ID"), // Issuer ID from environment variables
+		"exp": time.Now().Add(5 * time.Minute).Unix(), // Token expiration time (5 min from now)
+		"jti": uuid.New().String(), // Unique token ID
+		"aud": "tableau", // Audience (who the token is for)
+		"sub": "odatest", // Subject (user identifier)
+		"scp": []string{"tableau:views:embed"}, // Permissions
+		"https://tableau.com/oda": "true", // Custom Tableau claim
+		"https://tableau.com/groups": []string{"itrepublic"}, // User groups
 	}
 
-	// Create JWT token with signing method
+	// Create a new JWT token using HS256 signing method
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	// Set header options
+	// Add key ID and issuer to token header
 	token.Header["kid"] = os.Getenv("CONNECTED_APP_SECRET_ID")
 	token.Header["iss"] = os.Getenv("CONNECTED_APP_CLIENT_ID")
 
-	// Sign the token
+	// Get the secret key from environment variables
 	secretKey := os.Getenv("CONNECTED_APP_SECRET_KEY")
 	if secretKey == "" {
 		log.Println("❌ ERROR: CONNECTED_APP_SECRET_KEY is not set.")
 		return "", fmt.Errorf("missing CONNECTED_APP_SECRET_KEY")
 	}
 
+	// Sign the token with the secret key
 	signedToken, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		log.Println("❌ ERROR: Failed to sign JWT token:", err)
@@ -64,9 +65,9 @@ func generateJWT() (string, error) {
 	return signedToken, nil
 }
 
-// Tableau authentication function
+// Function to authenticate with Tableau
 func tableauSignIn(w http.ResponseWriter, r *http.Request) {
-	// Read the raw request body to log it
+	// Read request body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println("❌ ERROR: Failed to read request body:", err)
@@ -74,13 +75,13 @@ func tableauSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Log the received body
+	// Log the request body
 	log.Printf("Received body: %s", string(body))
 
-	// Rewind the body so it can be read by the JSON decoder
+	// Reset request body for further processing
 	r.Body = ioutil.NopCloser(bytes.NewReader(body))
 
-	// Parse the JSON request body into TsRequest
+	// Decode JSON request into TsRequest struct
 	var tsRequest TsRequest
 	err = json.NewDecoder(r.Body).Decode(&tsRequest)
 	if err != nil {
@@ -89,7 +90,7 @@ func tableauSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if personal access token and secret are provided
+	// Ensure required fields are present
 	if tsRequest.Credentials.PersonalAccessTokenName == "" || tsRequest.Credentials.PersonalAccessTokenSecret == "" {
 		log.Println("❌ ERROR: Missing personal access token name or secret in request")
 		http.Error(w, "Missing personal access token name or secret", http.StatusBadRequest)
@@ -98,10 +99,10 @@ func tableauSignIn(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("🔹 Authenticating with Tableau using personal access token")
 
-	// Convert the request to JSON format for Tableau API
-	tsRequest.Credentials.Site.ContentUrl = "embedseubl" // Use the appropriate site content URL
+	// Set the Tableau site content URL
+	tsRequest.Credentials.Site.ContentUrl = "embedseubl"
 
-	// Marshal the request into JSON
+	// Convert request struct to JSON
 	jsonData, err := json.Marshal(tsRequest)
 	if err != nil {
 		log.Println("❌ ERROR: Failed to marshal JSON:", err)
@@ -109,7 +110,7 @@ func tableauSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send authentication request to Tableau (XML still required by Tableau API)
+	// Send authentication request to Tableau API
 	resp, err := http.Post("https://us-west-2b.online.tableau.com/api/3.22/auth/signin",
 		"application/json", bytes.NewBuffer(jsonData))
 
@@ -120,18 +121,18 @@ func tableauSignIn(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Read the Tableau API response
+	// Read response from Tableau
 	body, _ = ioutil.ReadAll(resp.Body)
 	log.Println("📩 Tableau Response:", string(body))
 
-	// Check if authentication failed
+	// Check for authentication failure
 	if resp.StatusCode != http.StatusOK {
 		log.Println("❌ ERROR: Tableau authentication failed with status:", resp.Status)
 		http.Error(w, "Tableau authentication failed", resp.StatusCode)
 		return
 	}
 
-	// Generate JWT token after successful Tableau auth
+	// Generate JWT token
 	jwtToken, err := generateJWT()
 	if err != nil {
 		log.Println("❌ ERROR: Failed to generate JWT token")
@@ -141,7 +142,7 @@ func tableauSignIn(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("✅ Authentication successful, sending JWT token")
 
-	// Send JWT token as JSON response
+	// Send JWT token as response
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(fmt.Sprintf(`{"jwtToken": "%s"}`, jwtToken)))
 }
@@ -153,25 +154,28 @@ func main() {
 		log.Fatal("❌ ERROR: Failed to load .env file")
 	}
 
-	// Set up CORS middleware
+	// Configure CORS policy
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:3000"}, // Add your frontend URL here
+		AllowedOrigins: []string{"http://localhost:3000"}, // Define allowed frontend URL
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders: []string{"Content-Type"},
 	})
 
-	// Set up the HTTP route
+	// Define route handler for Tableau authentication
 	http.HandleFunc("/tableau-signin", tableauSignIn)
 
-	// Wrap the handler with CORS middleware
+	// Wrap HTTP server with CORS middleware
 	handler := corsHandler.Handler(http.DefaultServeMux)
 
-	// Start the server
+	// Get port from environment variable or default to 5000
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
 	}
+
 	log.Println("🚀 Server running on port", port)
+
+	// Start the HTTP server
 	err = http.ListenAndServe(":"+port, handler)
 	if err != nil {
 		log.Fatal("❌ ERROR: Failed to start server:", err)
