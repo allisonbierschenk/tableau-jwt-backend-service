@@ -56,7 +56,9 @@ function generateTableauJWT(username) {
             'tableau:views:embed_authoring',
             'tableau:metrics:embed',
             'tableau:insights:embed',
-        ]
+        ],
+        "AgentID": ["123456","67890","12323424"]
+
     };
 
     const jwtOptions = {
