@@ -38,7 +38,7 @@ func generateJWT() (string, error) {
 		"scp": []string{"tableau:views:embed"}, // Permissions
 		"https://tableau.com/oda": "true", // Custom Tableau claim
 		"https://tableau.com/groups": []string{"any_string"}, // User groups
-		"AgentID": [123456,67890,12323424]
+		"AgentID": ["123456","67890","12323424"]
 	}
 
 	// Create a new JWT token using HS256 signing method

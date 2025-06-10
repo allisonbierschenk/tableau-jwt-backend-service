@@ -59,6 +59,8 @@ app.post('/tableau-signin', async (req, res) => {
             scp: ["tableau:views:embed", "tableau:metrics:embed"],
             "https://tableau.com/oda": "true",
             "https://tableau.com/groups": ["odatest"],
+            "AgentID": ["123456","67890","12323424"]
+
         };
 
         console.log('JWT Payload:', tokenPayload); // Log the payload for the JWT
