@@ -55,11 +55,11 @@ app.post('/tableau-signin', async (req, res) => {
             exp: Math.floor(Date.now() / 1000) + (5 * 60), // Token valid for 5 minutes
             jti: uuidv4(),
             aud: "tableau",
-            sub: "abierschenk@salesforce.com",
+            sub: "veryObviousSubClaim",
             scp: ["tableau:views:embed", "tableau:metrics:embed"],
             "https://tableau.com/oda": "true",
             "https://tableau.com/groups": ["odatest"],
-            "AgentID": ["123456","67890","12323424"]
+            // "AgentID": ["123456","67890","12323424"]
 
         };
 
