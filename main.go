@@ -178,8 +178,8 @@ func main() {
 		port = "5000"
 	}
 	log.Println("🚀 Server running on port", port)
-	err = http.ListenAndServe(":"+port, handler)
-	if err != nil {
-		log.Fatal("❌ ERROR: Failed to start server:", err)
+	err := http.ListenAndServe(":"+port, handler)
+		if err != nil {
+    	log.Fatal("❌ ERROR: Failed to start server:", err)
 	}
 }
