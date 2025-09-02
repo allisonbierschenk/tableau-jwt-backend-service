@@ -161,7 +161,7 @@ func main() {
 
 	// Set up CORS middleware
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:3000"}, // Add your frontend URL here
+		AllowedOrigins: []string{"*"}, // Add your frontend URL here
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders: []string{"Content-Type"},
 	})

@@ -164,7 +164,7 @@ func main() {
 
 	// Configure CORS policy
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:3000"}, // Define allowed frontend URL
+		AllowedOrigins: []string{"*"}, // Define allowed frontend URL
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders: []string{"Content-Type"},
 	})
