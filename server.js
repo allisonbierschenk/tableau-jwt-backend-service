@@ -254,9 +254,6 @@ app.post('/tableau-signin', async (req, res) => {
                 });
             }
 
-            // REMOVE THIS LINE: It's redundant and causes the error
-            // return res.json({ tsAuthInfo, jwtToken }); // Return both in an object
-
         } catch (err) {
             console.error('Error during Tableau authentication:', err.message);
             return res.status(500).json({ message: 'Failed to authenticate with Tableau', error: err.message });
