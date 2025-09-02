@@ -149,10 +149,17 @@ func tableauSignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("❌ ERROR: Failed to load .env file")
+	// Try to load .env only if it exists (local dev)
+	if err := godotenv.Load(); err != nil {
+		log.Println("ℹ️ No .env file found, relying on system environment variables")
+	}
+
+	// Now read environment variables (works both locally & on Railway)
+	clientID := os.Getenv("CONNECTED_APP_CLIENT_ID")
+	secretKey := os.Getenv("CONNECTED_APP_SECRET_KEY")
+
+	if clientID == "" || secretKey == "" {
+		log.Fatal("❌ Missing required environment variables")
 	}
 
 	// Configure CORS policy
