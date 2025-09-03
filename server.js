@@ -12,6 +12,21 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3333;
 
+// Validate required environment variables
+const requiredEnvVars = [
+    'CONNECTED_APP_CLIENT_ID',
+    'CONNECTED_APP_SECRET_ID', 
+    'CONNECTED_APP_SECRET_KEY',
+    'TS_SERVER',
+    'TS_SITE_URL'
+];
+
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+    console.warn(`Warning: Missing environment variables: ${missingEnvVars.join(', ')}`);
+    console.warn('Some features may not work properly without these variables.');
+}
+
 // Middleware
 app.use(cors({
     origin: true,
@@ -19,46 +34,65 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 
-const os = require('os'); // Import the 'os' module
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
 
-let desktopPath;
-switch (os.platform()) {
-    case 'darwin': // macOS
-        desktopPath = path.join(os.homedir(), 'Desktop');
-        break;
-    case 'win32': // Windows
-        desktopPath = path.join(os.homedir(), 'Desktop');
-        // On some older Windows or specific setups, it might be more complex
-        // For standard cases, os.homedir() + 'Desktop' often works.
-        break;
-    case 'linux': // Linux
-        desktopPath = path.join(os.homedir(), 'Desktop');
-        break;
-    default:
-        console.warn('Unknown OS, defaulting to current directory for downloads.');
-        desktopPath = __dirname;
-}
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'JWT Auth Backend Service is running',
+        endpoints: [
+            'POST /tableau-signin',
+            'GET /tableau-folders',
+            'GET /tableau-views',
+            'GET /health'
+        ]
+    });
+});
 
-const downloadsDir = path.join(desktopPath, 'CrosstabTestFolder');
+// Use Railway-compatible directory structure
+const downloadsDir = path.join(__dirname, 'downloads');
 if (!fs.existsSync(downloadsDir)) {
-    fs.mkdirSync(downloadsDir, { recursive: true }); // recursive: true creates parent folders if they don't exist
+    fs.mkdirSync(downloadsDir, { recursive: true });
 }
 
 console.log(`Downloads directory set to: ${downloadsDir}`);
-// Load users from CSV
+// Load users from CSV with fallback for Railway deployment
 function loadUsersFromCSV() {
     return new Promise((resolve, reject) => {
         const users = [];
-        const filePath = path.join(__dirname, 'users.csv'); // Ensure correct path
+        const filePath = path.join(__dirname, 'users.csv');
+
+        // Check if file exists, if not, use fallback users for demo
+        if (!fs.existsSync(filePath)) {
+            console.warn('users.csv not found, using fallback demo users');
+            resolve([
+                { email: 'demo@example.com', password: 'demo123' },
+                { email: 'admin@example.com', password: 'admin123' }
+            ]);
+            return;
+        }
 
         fs.createReadStream(filePath)
             .pipe(csv({ headers: false }))
             .on('data', (row) => {
                 const [email, password] = Object.values(row);
-                users.push({ email, password }); // Store as objects
+                users.push({ email, password });
             })
             .on('end', () => resolve(users))
-            .on('error', (err) => reject(err));
+            .on('error', (err) => {
+                console.error('Error reading CSV, using fallback users:', err);
+                resolve([
+                    { email: 'demo@example.com', password: 'demo123' },
+                    { email: 'admin@example.com', password: 'admin123' }
+                ]);
+            });
     });
 }
 
@@ -409,4 +443,37 @@ app.get('/tableau-views', async (req, res) => {
 // });
 
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start server with proper error handling
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 Health check available at: http://localhost:${PORT}/health`);
+    console.log(`🔗 API endpoints available at: http://localhost:${PORT}/`);
+});
+
+// Handle server errors gracefully
+server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use`);
+        process.exit(1);
+    } else {
+        console.error('❌ Server error:', error);
+        process.exit(1);
+    }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('🛑 SIGINT received, shutting down gracefully');
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
+});
