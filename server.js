@@ -116,7 +116,9 @@ function generateTableauJWT(username) {
             'tableau:metrics:embed',
             'tableau:insights:embed',
         ],
-        "AgentID": ["123456","67890","12323424"]
+        "AgentID": ["123456","67890","12323424"],
+        "https://tableau.com/oda":"true",
+        "https://tableau.com/groups": ["onDemandGroup1"],
 
     };
 
@@ -259,34 +261,40 @@ app.post('/tableau-signin', async (req, res) => {
             console.log("Authentication info:", tsAuthInfo);
 
             // --- New: Trigger crosstab download immediately after successful sign-in ---
-            const viewId = process.env.TS_VIEW_ID; // Get view ID from .env
-            const siteId = process.env.SITE_ID;   // Get site ID from .env
+            // const viewId = process.env.TS_VIEW_ID; // Get view ID from .env
+            // const siteId = process.env.SITE_ID;   // Get site ID from .env
 
-            if (!viewId || !siteId) {
-                console.error('Missing environment variables for crosstab download: TS_VIEW_ID, SITEID');
-                return res.status(500).json({ message: 'Server configuration error: Missing view or site ID for download.' });
-            }
+            // if (!viewId || !siteId) {
+            //     console.error('Missing environment variables for crosstab download: TS_VIEW_ID, SITEID');
+            //     return res.status(500).json({ message: 'Server configuration error: Missing view or site ID for download.' });
+            // }
 
-            try {
-                const downloadedFilePath = await downloadCrosstab(tsAuthToken, siteId, viewId);
-                console.log(`Crosstab download initiated successfully upon sign-in. File saved to: ${downloadedFilePath}`);
-                return res.json({
-                    message: 'Sign-in successful and crosstab download initiated.',
-                    tsAuthInfo,
-                    jwtToken,
-                    downloadStatus: 'initiated',
-                    downloadPath: downloadedFilePath // Optionally return the path
-                });
-            } catch (downloadError) {
-                console.error('Failed to download crosstab after successful sign-in:', downloadError.message);
-                return res.status(500).json({
-                    message: 'Sign-in successful, but failed to download crosstab.',
-                    tsAuthInfo,
-                    jwtToken,
-                    downloadStatus: 'failed',
-                    error: downloadError.message
-                });
-            }
+            // try {
+            //     const downloadedFilePath = await downloadCrosstab(tsAuthToken, siteId, viewId);
+            //     console.log(`Crosstab download initiated successfully upon sign-in. File saved to: ${downloadedFilePath}`);
+            //     return res.json({
+            //         message: 'Sign-in successful and crosstab download initiated.',
+            //         tsAuthInfo,
+            //         jwtToken,
+            //         downloadStatus: 'initiated',
+            //         downloadPath: downloadedFilePath // Optionally return the path
+            //     });
+            // } catch (downloadError) {
+            //     console.error('Failed to download crosstab after successful sign-in:', downloadError.message);
+            //     return res.status(500).json({
+            //         message: 'Sign-in successful, but failed to download crosstab.',
+            //         tsAuthInfo,
+            //         jwtToken,
+            //         downloadStatus: 'failed',
+            //         error: downloadError.message
+            //     });
+            // }
+
+            return res.json({
+                message: 'Sign-in successful.',
+                tsAuthInfo,
+                jwtToken
+            });
 
         } catch (err) {
             console.error('Error during Tableau authentication:', err.message);
